@@ -7,7 +7,7 @@ DROP TABLE IF EXISTS `suppliers`;
 -- ***Create data***
 CREATE TABLE IF NOT EXISTS `suppliers`(
     `Id` INT AUTO_INCREMENT,
-    `Name` VARCHAR(30) NOT NULL UNIQUE,
+    `Name` VARCHAR(30) NOT NULL,
     PRIMARY KEY(`Id`)
 );
 
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS `customers`(
 CREATE TABLE IF NOT EXISTS`products`(
     `Id` INT AUTO_INCREMENT,
     `Code` CHAR(16) NOT NULL UNIQUE,
-    `Item` VARCHAR(30) NOT NULL UNIQUE,
+    `Item` VARCHAR(30) NOT NULL,
     `Price` DECIMAL(10, 2) NOT NULL CHECK(`Price` > 0),
     `AgeRestriction` INT(1) CHECK(`AgeRestriction` >= 0 AND `ageRestriction` <= 18),
     `SupplierId` INT,
@@ -55,6 +55,6 @@ INSERT INTO `products`(Code, Item, Price, AgeRestriction, SupplierId, OnStock) V
     ('4', 'Manga: Konosubarashi', '31.99', 16, 2, 0)
 ;
 
--- ***Display data for verify***
+-- ***Display data to verify***
 SELECT * FROM `suppliers` LIMIT 5;
 SELECT * FROM `products` LIMIT 5;
