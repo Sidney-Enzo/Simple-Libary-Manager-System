@@ -1,0 +1,14 @@
+## Added
+- I have notice that one product can be made for mulltiples suppliers
+and one supplier can have mulltiples products so i created a table to 
+link them `created`
+- EOF and KeyInterrup handlers
+
+## Changed
+- storage -> products
+- products.Item -> products.Name
+- removed supplier id from products
+
+## Fixed
+- Debug and revised
+- Typo errors custumer -> customer

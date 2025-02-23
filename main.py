@@ -1,113 +1,111 @@
 import pymysql
 import pymysql.cursors
+from sys import exit
 
-def get_store_products(cursor: pymysql.cursors.Cursor, ageRestriction: int = 19) -> list[dict[str, any]]:
-    cursor.execute(f'''
-SELECT *
-FROM `storage`
-WHERE code in (
-    SELECT min(`Code`)
-    FROM `storage`
-    GROUP BY `Item`
-) AND ageRestriction < {ageRestriction};
-''')
-
-    # get Fetch data
+def get_libary_products(cursor: pymysql.cursors.DictCursor) -> list[dict[str, any]]:
+    cursor.execute('SELECT * FROM `products`;')
     return cursor.fetchall()
 
-def update_stock(cursor: pymysql.cursors.Cursor, code: str, amount: int) -> None:
-    cursor.execute(f'''
-UPDATE `storage`
-SET OnStock = {amount}
-WHERE Code = \'{code}\';
-''')
-
-def getProduct(store: list[dict[str, any]], item_code: int) -> dict[str, any]:
-    for item in store:
-        if item["Code"] == item_code:
-            return item
+def get_product(products: dict[str, any], code: str) -> dict[str, any] | bool:
+    for product in products:
+        if product["Code"] == code:
+            return product
     
     return False
 
-def get_int_input(message: str, excepction_error: str='Plase insert a integer number') -> int:
+def get_int_input(message: str, error: str = 'It is not a number') -> int:
     while True:
         try:
-            return int(input(message) or '0')
+            return int(input(message))
         except ValueError:
-            print(excepction_error)
+            print(error)
+        except KeyboardInterrupt | EOFError:
+            exit('Bye')
 
-def get_float_input(message: str, excepction_error: str='Plase insert a number') -> float:
+def get_float_input(message: str, error: str = 'It is not a number') -> int:
     while True:
         try:
-            return float(input(message) or '0')
+            return float(input(message))
         except ValueError:
-            print(excepction_error)
+            print(error)
+        except (KeyboardInterrupt, EOFError):
+            exit('Bye')
 
 def main() -> None:
-    connection = pymysql.connect(
-        host='localhost',
-        user='root',
-        password='1234',
-        db='libary',
-        charset='utf8mb4',
-        cursorclass=pymysql.cursors.DictCursor
-    )
-    cursor = connection.cursor()
-
     try:
-        total_value = 0.0
-        products = get_store_products(cursor)
-        for product in products:
-            print(product)
+        # connect with the database
+        connection = pymysql.connect(
+            host='localhost',
+            user='root',
+            password='1234',
+            database='libary',
+            cursorclass=pymysql.cursors.DictCursor
+        )
+        cursor = connection.cursor()
 
+        # get database data
+        libary_products = get_libary_products(cursor)
+        print(libary_products)
+
+        # init variables
+        total_to_pay = 0
+        cursor.execute('SELECT COALESCE(MAX(`Id`), 1) AS `LastCustomer` FROM `customers`;')
+        current_customer = cursor.fetchall()[0]["LastCustomer"]
         while True:
-            product_code = input('What are you buying? ').strip()
+            try:
+                product_code = input('Please insert product code: ')
+            except (KeyboardInterrupt, EOFError):
+                exit('bye')
+            
             if product_code == 'next':
-                money_given = get_float_input('Pay ', 'It is not money')
-                cursor.execute(f'''
-INSERT INTO `customers`(Total) VALUES ({total_value});
-''')
-                connection.commit()
+                payment = 0
+                while payment < total_to_pay:
+                    print(f'You still got pay {total_to_pay - payment} R$')
+                    payment += get_float_input('Plase insert payment value: ')
+                
+                # print  bill
                 print(f'''
-Total {total_value}
-Money {money_given}
-Change {(total_value - money_given):.2f}
-
-***Obrigado a preferencia***
-Next costumer!''')
-                total_value = 0
-                continue
-            
-            product = getProduct(products, product_code)
-            if not product:
-                print('This product does not exist on storage')
-                continue
-
-            if product["OnStock"] < 1:
-                print('We re out of this product on stock.')
-                continue
-
-            product_amount = get_int_input('How many of this product are you buying? ')
-            if product["OnStock"] < product_amount:
-                print('We re out of this product on stock.')
-                continue
-            
-            to_pay = product["Price"]*product_amount
-            print(f'You\'re buying {product_amount} manga of {product["Item"]} it cost: R${to_pay}')
-            
-            total_value += to_pay
-            print('Total to pay: R$', total_value)
-            
-            product["OnStock"] -= product_amount
-            update_stock(cursor, product_code, product["OnStock"])
-            cursor.execute(f'''
-INSERT INTO `sellers`(CustumerId, ProductId, Amount, Price) VALUES 
-    ((SELECT COALESCE(MAX(`Id`), 1) FROM `customers`), {product["Id"]}, {product_amount}, \'{product["Price"]}\');
+***Bill***
+Cutomer: {current_customer}
+---''')
+                
+                print(f'''Total: {total_to_pay:.2f} R$;
+Paid: {payment:.2f} R$;
+Change: {abs(total_to_pay - payment):.2f} R$;
+***Thanks your preference***
 ''')
-            # print(f'Still there\'s {product["OnStock"]} of this product on stock.')
-            connection.commit()
+                print('Next costumer!')
+
+                # update program valus
+                current_customer += 1
+                # update db values
+                cursor.execute(f'INSERT INTO `customers`(Total) VALUES (\'{total_to_pay:.2f}\');')
+                connection.commit()
+                # reset program values
+                total_to_pay = 0
+                continue
+            elif not (product := get_product(libary_products, product_code)):
+                print('Product does not exist on the storage')
+                continue
+            
+            print(product)
+            product_amount = 0
+            while True:
+                product_amount = get_int_input('How much of this product are you buying? ')
+                if product_amount > product["OnStock"]:
+                    print(f'Only theres {product["OnStock"]} of this product on stock you can\'t get {product_amount} of them')
+                    break
+                elif product_amount <= 0:
+                    print('(Invalid operation!) You got buy at least 1 unit of this item')
+                    break
+            
+            to_pay_product = float(product["Price"])*product_amount
+            print(f'You\'re buying {product_amount} {product["Name"]}, it cost {to_pay_product} R$')
+
+            total_to_pay += to_pay_product
+            print(f'Total to pay {total_to_pay} R$')
     finally:
         connection.close()
 
 if __name__ == '__main__':
-    main()  
+    main()
