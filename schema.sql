@@ -31,8 +31,9 @@ CREATE TABLE IF NOT EXISTS `products`(
 CREATE TABLE IF NOT EXISTS `created`(
     `SupplierId` INT,
     `ProductId` INT,
-    FOREIGN KEY(`SupplierId`) REFERENCES `suppliers`(`Id`),
-    FOREIGN KEY(`ProductId`) REFERENCES `products`(`Id`)
+    PRIMARY KEY(`SupplierId`, `ProductId`),
+    FOREIGN KEY(`SupplierId`) REFERENCES `suppliers`(`Id`) ON DELETE CASCADE,
+    FOREIGN KEY(`ProductId`) REFERENCES `products`(`Id`) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS `sellers`(

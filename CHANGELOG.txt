@@ -8,7 +8,9 @@ link them `created`
 - storage -> products
 - products.Item -> products.Name
 - removed supplier id from products
+- WHOLE stucture now with OOP
+- GUI tkinter based
 
 ## Fixed
-- Debug and revised
+- Debuged and revised
 - Typo errors custumer -> customer
