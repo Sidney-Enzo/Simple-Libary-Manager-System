@@ -25,6 +25,7 @@ class App:
         # Gui
         self.window = tk.Tk()
         self.window.title('Cash register')
+        self.window.iconbitmap('icon.ico')
 
         self.input_frame = tk.Frame(self.window, width=512, height=64)
         self.code_frame = tk.Frame(self.input_frame)
