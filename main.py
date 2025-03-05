@@ -53,22 +53,22 @@ class App:
 
         self.bought_frame = tk.Frame(self.window, width=316, height=128)
         self.bought_items = ttk.Treeview(self.bought_frame, columns=('Name', 'Amount', 'Per_unit', 'Total'))
-        self.bought_items.column('#0', width=128)
+        self.bought_items.column('#0', stretch=True)
         self.bought_items.heading('#0', text='Id')
 
-        self.bought_items.column('Name', width=128)
+        self.bought_items.column('Name', stretch=True)
         self.bought_items.heading('Name', text='Name')
 
-        self.bought_items.column('Amount', width=128)
+        self.bought_items.column('Amount', stretch=True)
         self.bought_items.heading('Amount', text='Amount')
 
-        self.bought_items.column('Per_unit', width=128)
+        self.bought_items.column('Per_unit', stretch=True)
         self.bought_items.heading('Per_unit', text='Per unit')
 
-        self.bought_items.column('Total', width=128)
+        self.bought_items.column('Total', stretch=True)
         self.bought_items.heading('Total', text='Total')
-        self.bought_items.pack(fill=tk.Y, expand=True)
-        self.bought_frame.pack(side=tk.LEFT, padx=4, pady=4, fill=tk.Y)
+        self.bought_items.pack(fill=tk.BOTH, expand=True)
+        self.bought_frame.pack(side=tk.LEFT, padx=4, pady=4, fill=tk.BOTH, expand=True)
         
         self.right_frame = tk.Frame(self.window, width=200, height=316)
         self.output_frame = tk.Frame(self.right_frame, width=200, height=64, bg='black')
