@@ -31,7 +31,7 @@ class App:
         self.code_label = tk.Label(self.code_frame, text='Code', font=('Helvetica', 16))
         self.code_label.pack()
 
-        self.code_entry = tk.Entry(self.code_frame, width=25)
+        self.code_entry = tk.Entry(self.code_frame, width=22, font=('Helvetica', 16))
         self.code_entry.pack()
         self.code_frame.pack(side=tk.LEFT)
         
@@ -39,7 +39,7 @@ class App:
         self.amount_label = tk.Label(self.amount_frame, text='Amount', font=('Helvetica', 16))
         self.amount_label.pack()
 
-        self.amount_entry = tk.Entry(self.amount_frame, width=25)
+        self.amount_entry = tk.Entry(self.amount_frame, width=22, font=('Helvetica', 16))
         self.amount_entry.pack()
         self.amount_frame.pack(side=tk.LEFT)
 
@@ -50,9 +50,13 @@ class App:
         self.supermaket_logo.pack(side=tk.RIGHT)
         self.input_frame.pack(side=tk.TOP, anchor=tk.NW, padx=4, pady=4)
 
-        self.bought_frame = tk.Frame(self.window, width=316, height=128, bg='red')
-        self.bought_items = ttk.Treeview(self.bought_frame, columns=('Amount', 'Per_unit', 'Total'))
-        self.bought_items.heading('#0', text='Item')
+        self.bought_frame = tk.Frame(self.window, width=316, height=128)
+        self.bought_items = ttk.Treeview(self.bought_frame, columns=('Name', 'Amount', 'Per_unit', 'Total'))
+        self.bought_items.column('#0', width=128)
+        self.bought_items.heading('#0', text='Id')
+
+        self.bought_items.column('Name', width=128)
+        self.bought_items.heading('Name', text='Name')
 
         self.bought_items.column('Amount', width=128)
         self.bought_items.heading('Amount', text='Amount')
@@ -78,7 +82,7 @@ class App:
         self.recived_text = tk.Label(self.seller_frame, text='Total recived', font=('Helvetica', 16))
         self.recived_text.pack()
 
-        self.recive_entry = tk.Entry(self.seller_frame, width=25)
+        self.recive_entry = tk.Entry(self.seller_frame, width=12, font=('Helvetica', 16))
         self.recive_entry.pack()
         
         self.change_text = tk.Label(self.seller_frame, text='Change: 0 R$', font=('Helvetica', 16))
@@ -91,6 +95,8 @@ class App:
         self.next_button = tk.Button(self.right_frame, text='Next', font=('Helvetica', 16), command=self.switch_to_payment, bg='green', fg='white', width=12, height=3)
         self.next_button.pack()
         self.right_frame.pack(side=tk.LEFT, padx=4, pady=4)
+        self.window.update()
+        self.window.minsize(self.window.winfo_width(), self.window.winfo_height())
 
         self.product = None
         self.product_list = []
@@ -117,7 +123,11 @@ UPDATE `products` SET `OnStock` = {on_stock} WHERE `Id` = \'{id}\';
     def add_seller(self, customer_id: str, product_id: str, amount: int, per_unit: float) -> None:
         self.cursor.execute(f'''
 INSERT INTO `sellers`(CustomerId, ProductId, Amount, Total) VALUES 
-    ({customer_id}, {product_id}, {amount}, \'{(amount*per_unit):.2f}\');
+    ({customer_id}, {product_id}, {amount}, \'{(amount*per_unit):.2f}\')
+ON DUPLICATE KEY UPDATE
+    `Amount` = `Amount` + {amount},
+    `Total` = `Total` + \'{(amount*per_unit):.2f}\'
+;
 ''')
         self.connection.commit()
     
@@ -127,6 +137,26 @@ INSERT INTO `customers`(Total) VALUES
     (\'{total_price:.2f}\');
 ''')
         self.connection.commit()
+
+    def product_was_bought(self, id: int) -> bool:
+        for child in self.bought_items.get_children(''):
+            item = self.bought_items.item(child, 'text')
+
+            if int(item) == id:
+                return child
+            
+        return False
+
+    def update_bought_treeview(self, product: dict[str, any], amount: int) -> None:
+        if child := self.product_was_bought(product['Id']):
+            item = self.bought_items.item(child, 'values')
+            self.bought_items.item(child, values=(product['Name'], int(item[1]) + amount, product["Price"], float(item[3]) + float(product["Price"])*amount))
+        else:
+            self.bought_items.insert('',
+                tk.END, 
+                text=product['Id'],
+                values=(product['Name'], amount, product["Price"], product["Price"]*amount)
+            )
 
     def switch_to_payment(self) -> None:
         if len(self.product_list) > 0:
@@ -158,16 +188,12 @@ INSERT INTO `customers`(Total) VALUES
 
         self.code_entry.delete(0, tk.END)
         self.amount_entry.delete(0, tk.END)
-        self.bought_items.insert('',
-            tk.END, 
-            text=product["Name"],
-            values=(product_amount, product["Price"], self.total_price)
-        )
+        self.update_bought_treeview(product, product_amount)
 
         self.total_price_text.configure(text=f'Total {self.total_price} R$')
         self.last_product_text.configure(text=f'\"{product["Name"]}\" {product_amount} {to_pay_product} R$')
 
-    def send_payment(self,) -> None:
+    def send_payment(self) -> None:
         self.payment += float(self.recive_entry.get())
         if self.payment < self.total_price:
             print(f'You still got pay {(self.total_price - self.payment):.2f} R$')
