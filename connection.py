@@ -4,7 +4,12 @@ import pymysql.cursors
 class Store_connection(pymysql.connect):
     def __init__(self, host: str, user: str, password: str, database: str):
         # connect with the database
-        super().__init__(host, user, password, database, cursorclass=pymysql.cursors.DictCursor)
+        super().__init__(host=host, 
+            user=user,
+            password=password,
+            database=database,
+            cursorclass=pymysql.cursors.DictCursor
+        )
 
         # Create a cursor for database controlling
         self.controler_cursor = self.cursor()
