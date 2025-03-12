@@ -5,6 +5,13 @@ from tkinter import ttk
 import sv_ttk
 from PIL import ImageTk, Image
 
+def is_float(value: str) -> bool:
+    try:
+        float(value)
+        return True
+    except ValueError:
+        return False
+
 class App:
     def __init__(self):
         helvetica_meddium = ('Helvetica', 16)
@@ -21,12 +28,16 @@ class App:
         self.window.title('Cash register')
         self.window.iconbitmap('icon.ico')
 
+        onlyInt = self.window.register(lambda p: p.isdigit() or p == '')
+        onlyNumbers = self.window.register(lambda p: is_float(p) or p == '')
+        
         self.input_frame = tk.Frame(self.window, width=512, height=64)
         self.code_frame = tk.Frame(self.input_frame)
         self.code_label = tk.Label(self.code_frame, text='Code', font=helvetica_meddium)
         self.code_label.pack()
 
-        self.code_entry = tk.Entry(self.code_frame, width=22, font=helvetica_meddium)
+
+        self.code_entry = tk.Entry(self.code_frame, validate='all', vcmd=(onlyInt, '%P'), width=22, font=helvetica_meddium)
         self.code_entry.pack()
         self.code_frame.pack(side=tk.LEFT, padx=4, pady=4)
         
@@ -34,7 +45,7 @@ class App:
         self.amount_label = tk.Label(self.amount_frame, text='Amount', font=helvetica_meddium)
         self.amount_label.pack()
 
-        self.amount_entry = tk.Entry(self.amount_frame, width=22, font=helvetica_meddium)
+        self.amount_entry = tk.Entry(self.amount_frame, validate='all', vcmd=(onlyInt, '%P'), width=22, font=helvetica_meddium)
         self.amount_entry.pack()
         self.amount_frame.pack(side=tk.LEFT, padx=4, pady=4)
 
@@ -65,9 +76,8 @@ class App:
         self.bought_frame.pack(side=tk.LEFT, padx=4, pady=4, fill=tk.BOTH, expand=True)
         
         self.right_frame = tk.Frame(self.window, width=200, height=316)
-        self.output_frame = tk.Frame(self.right_frame, width=200, height=64, bg='black')
-        self.output_frame.propagate(False)
-        self.last_product_text = tk.Label(self.output_frame, text='...', font=helvetica_meddium, wraplength=200, bg='black', fg='cyan')
+        self.output_frame = tk.Frame(self.right_frame, width=200, height=80, bg='black')
+        self.last_product_text = tk.Label(self.output_frame, text='...', font=helvetica_meddium, wraplength=200, width=12, bg='black', fg='cyan')
         self.last_product_text.pack()
         
         self.total_price_text = tk.Label(self.output_frame, text='Total 0 R$', font=helvetica_meddium, bg='black', fg='cyan')
@@ -78,7 +88,7 @@ class App:
         self.recived_text = tk.Label(self.seller_frame, text='Total recived', font=helvetica_meddium)
         self.recived_text.pack()
 
-        self.recive_entry = tk.Entry(self.seller_frame, width=12, font=helvetica_meddium)
+        self.recive_entry = tk.Entry(self.seller_frame, width=12, validate='all', vcmd=(onlyNumbers, '%P'), font=helvetica_meddium)
         self.recive_entry.pack()
         
         self.change_text = tk.Label(self.seller_frame, text='Change: 0 R$', font=helvetica_meddium)
@@ -107,7 +117,7 @@ class App:
         self.total_price = 0
         self.payment = 0
 
-    def product_was_bought(self, id: int) -> bool:
+    def get_product_on_tree(self, id: int) -> bool:
         for child in self.bought_items.get_children(''):
             item = self.bought_items.item(child, 'text')
 
@@ -117,19 +127,21 @@ class App:
         return False
 
     def update_bought_treeview(self, product: dict[str, any], amount: int) -> None:
-        if child := self.product_was_bought(product['Id']):
+        if child := self.get_product_on_tree(product["Id"]):
             item = self.bought_items.item(child, 'values')
-            self.bought_items.item(child, values=(product['Name'], int(item[1]) + amount, product["Price"], float(item[3]) + float(product["Price"])*amount))
+            self.bought_items.item(child, values=(product["Name"], int(item[1]) + amount, product["Price"], float(item[3]) + float(product["Price"])*amount))
         else:
             self.bought_items.insert('',
                 tk.END, 
-                text=product['Id'],
-                values=(product['Name'], amount, product["Price"], product["Price"]*amount)
+                text=product["Id"],
+                values=(product["Name"], amount, product["Price"], product["Price"]*amount)
             )
 
     def switch_to_payment(self) -> None:
         if len(self.product_list) > 0:
-            self.confirm_button.configure(command= self.send_payment)
+            self.confirm_button.configure(command=self.send_payment)
+        else:
+            print("You still didn\'t bought anything")
 
     def send_product(self) -> None:
         product_code = self.code_entry.get()
@@ -181,7 +193,7 @@ Cutomer: {self.current_customer}
         for seller, amount in self.product_list:
             print(f'{seller["Name"]} {amount}: {seller["Price"]} R$')
             self.store_connection.add_seller(self.current_customer, seller["Id"], amount, float(seller["Price"]))
-        
+
         print(f'''---
 Total: {self.total_price:.2f} R$;
 Paid: {self.payment:.2f} R$;

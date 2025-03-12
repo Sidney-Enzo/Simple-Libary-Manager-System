@@ -28,12 +28,13 @@ class Store_connection(pymysql.connect):
     def get_product(self, id: str) -> dict[str, any]:
         """Get the product with the correponding id"""
 
-        self.controler_cursor.execute("SELECT * FROM `products` WHERE `id` = %s", (id))
-        return self.controler_cursor.fetchall()
+        self.controler_cursor.execute("SELECT * FROM `products` WHERE `id` = %s;", (id))
+        return self.controler_cursor.fetchall()[0]
     
     def get_next_costumer(self) -> int:
-        self.controler_cursor.execute('SELECT COALESCE(MAX(`Id`), 1) AS `LastCustomer` FROM `customers`;')
-        return self.controler_cursor.fetchall()[0]["LastCustomer"]
+        """Get the last costumer"""
+        self.controler_cursor.execute('SELECT COALESCE(MAX(`Id`), 0) AS `LastCustomer` FROM `customers`;')
+        return self.controler_cursor.fetchall()[0]["LastCustomer"] + 1
 
     def withdraw(self, id: str, amount: int) -> None:
         """Decress the amount of the product availiable on stock"""
