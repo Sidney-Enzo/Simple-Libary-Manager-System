@@ -20,12 +20,16 @@ link them `created`
 
 ### Added 
 - window icon
+- sun valley theme
+- docstrings to help to remember what function does
 
 ### Changed
 - entry font default -> Helvetica, 16
 - font size default -> Helvetica, 16
+- Now all queries and sql database is handled on one file called "connection.py"
 
 ### Fixed 
 - No duplicates products for 1 customer on sellers table
 - No duplicates items in treeview
 - window has minsize now
+- query strings sanitized properly

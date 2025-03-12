@@ -1,26 +1,20 @@
-import pymysql
-import pymysql.cursors
+import connection
+
 import tkinter as tk
 from tkinter import ttk
+import sv_ttk
 from PIL import ImageTk, Image
 
 class App:
     def __init__(self):
+        helvetica_meddium = ('Helvetica', 16)
         # connect with the database
-        self.connection = pymysql.connect(
-            host='localhost',
-            user='root',
-            password='1234',
-            database='libary',
-            cursorclass=pymysql.cursors.DictCursor
+        self.store_connection = connection.Store_connection(
+            'localhost',
+            'root',
+            '1234',
+            'libary'
         )
-        self.cursor = self.connection.cursor()
-
-        # print(self.get_stock())
-
-        # Get next Customer
-        self.cursor.execute('SELECT COALESCE(MAX(`Id`), 1) AS `LastCustomer` FROM `customers`;')
-        self.current_customer = self.cursor.fetchall()[0]["LastCustomer"]
 
         # Gui
         self.window = tk.Tk()
@@ -29,20 +23,20 @@ class App:
 
         self.input_frame = tk.Frame(self.window, width=512, height=64)
         self.code_frame = tk.Frame(self.input_frame)
-        self.code_label = tk.Label(self.code_frame, text='Code', font=('Helvetica', 16))
+        self.code_label = tk.Label(self.code_frame, text='Code', font=helvetica_meddium)
         self.code_label.pack()
 
-        self.code_entry = tk.Entry(self.code_frame, width=22, font=('Helvetica', 16))
+        self.code_entry = tk.Entry(self.code_frame, width=22, font=helvetica_meddium)
         self.code_entry.pack()
-        self.code_frame.pack(side=tk.LEFT)
+        self.code_frame.pack(side=tk.LEFT, padx=4, pady=4)
         
         self.amount_frame =tk.Frame(self.input_frame)
-        self.amount_label = tk.Label(self.amount_frame, text='Amount', font=('Helvetica', 16))
+        self.amount_label = tk.Label(self.amount_frame, text='Amount', font=helvetica_meddium)
         self.amount_label.pack()
 
-        self.amount_entry = tk.Entry(self.amount_frame, width=22, font=('Helvetica', 16))
+        self.amount_entry = tk.Entry(self.amount_frame, width=22, font=helvetica_meddium)
         self.amount_entry.pack()
-        self.amount_frame.pack(side=tk.LEFT)
+        self.amount_frame.pack(side=tk.LEFT, padx=4, pady=4)
 
         self.img = Image.open('./assets/images/supermaket_logo.png')
         self.img = self.img.resize((64, 48))
@@ -51,7 +45,7 @@ class App:
         self.supermaket_logo.pack(side=tk.RIGHT)
         self.input_frame.pack(side=tk.TOP, anchor=tk.NW, padx=4, pady=4)
 
-        self.bought_frame = tk.Frame(self.window, width=316, height=128)
+        self.bought_frame = tk.Frame(self.window, width=256, height=128)
         self.bought_items = ttk.Treeview(self.bought_frame, columns=('Name', 'Amount', 'Per_unit', 'Total'))
         self.bought_items.column('#0', stretch=True)
         self.bought_items.heading('#0', text='Id')
@@ -72,30 +66,39 @@ class App:
         
         self.right_frame = tk.Frame(self.window, width=200, height=316)
         self.output_frame = tk.Frame(self.right_frame, width=200, height=64, bg='black')
-        self.last_product_text = tk.Label(self.output_frame, text='...', font=('Helvetica', 16), wraplength=200, bg='black', fg='cyan')
+        self.output_frame.propagate(False)
+        self.last_product_text = tk.Label(self.output_frame, text='...', font=helvetica_meddium, wraplength=200, bg='black', fg='cyan')
         self.last_product_text.pack()
         
-        self.total_price_text = tk.Label(self.output_frame, text='Total 0 R$', font=('Helvetica', 16), bg='black', fg='cyan')
+        self.total_price_text = tk.Label(self.output_frame, text='Total 0 R$', font=helvetica_meddium, bg='black', fg='cyan')
         self.total_price_text.pack()
         self.output_frame.pack()
         
         self.seller_frame = tk.Frame(self.right_frame, width=128, height=256)
-        self.recived_text = tk.Label(self.seller_frame, text='Total recived', font=('Helvetica', 16))
+        self.recived_text = tk.Label(self.seller_frame, text='Total recived', font=helvetica_meddium)
         self.recived_text.pack()
 
-        self.recive_entry = tk.Entry(self.seller_frame, width=12, font=('Helvetica', 16))
+        self.recive_entry = tk.Entry(self.seller_frame, width=12, font=helvetica_meddium)
         self.recive_entry.pack()
         
-        self.change_text = tk.Label(self.seller_frame, text='Change: 0 R$', font=('Helvetica', 16))
+        self.change_text = tk.Label(self.seller_frame, text='Change: 0 R$', font=helvetica_meddium)
         self.change_text.pack()
         self.seller_frame.pack()
 
-        self.confirm_button = tk.Button(self.right_frame, text='Confirm', font=('Helvetica', 16), command=self.send_product, bg='green', fg='white', width=12, height=3)
+        self.confirm_button = tk.Button(self.right_frame, text='Confirm', font=helvetica_meddium, command=self.send_product, bg='green', fg='white', width=12, height=3)
         self.confirm_button.pack()
 
-        self.next_button = tk.Button(self.right_frame, text='Next', font=('Helvetica', 16), command=self.switch_to_payment, bg='green', fg='white', width=12, height=3)
+        self.next_button = tk.Button(self.right_frame, text='Next', font=helvetica_meddium, command=self.switch_to_payment, bg='green', fg='white', width=12, height=3)
         self.next_button.pack()
+
+        self.delete_button = tk.Button(self.right_frame, text="Delete", font=helvetica_meddium, bg='red', fg='white', width=12, height=3)
+        self.delete_button.pack()
+
+        self.cancel_button = tk.Button(self.right_frame, text='Cancel', font=helvetica_meddium, bg='red', fg='white', width=12, height=3)
+        self.cancel_button.pack()
+
         self.right_frame.pack(side=tk.LEFT, padx=4, pady=4)
+        sv_ttk.set_theme('dark')
         self.window.update()
         self.window.minsize(self.window.winfo_width(), self.window.winfo_height())
 
@@ -103,41 +106,6 @@ class App:
         self.product_list = []
         self.total_price = 0
         self.payment = 0
-    
-    def update_stock(self, on_stock: int, id: str) -> None:
-        self.cursor.execute(f'''
-UPDATE `products` SET `OnStock` = {on_stock} WHERE `Id` = \'{id}\';
-''')
-        self.connection.commit()
-
-    def get_stock(self) -> dict[str, any]:
-        self.cursor.execute('SELECT * FROM `products`;')
-        return self.cursor.fetchall()
-
-    def get_product(self, code: str) -> dict[str, any] | bool:
-        for product in self.get_stock():
-            if product["Code"] == code:
-                return product
-        
-        return False
-
-    def add_seller(self, customer_id: str, product_id: str, amount: int, per_unit: float) -> None:
-        self.cursor.execute(f'''
-INSERT INTO `sellers`(CustomerId, ProductId, Amount, Total) VALUES 
-    ({customer_id}, {product_id}, {amount}, \'{(amount*per_unit):.2f}\')
-ON DUPLICATE KEY UPDATE
-    `Amount` = `Amount` + {amount},
-    `Total` = `Total` + \'{(amount*per_unit):.2f}\'
-;
-''')
-        self.connection.commit()
-    
-    def add_customer(self, total_price: float) -> None:
-        self.cursor.execute(f'''
-INSERT INTO `customers`(Total) VALUES 
-    (\'{total_price:.2f}\');
-''')
-        self.connection.commit()
 
     def product_was_bought(self, id: int) -> bool:
         for child in self.bought_items.get_children(''):
@@ -165,9 +133,9 @@ INSERT INTO `customers`(Total) VALUES
 
     def send_product(self) -> None:
         product_code = self.code_entry.get()
-        product = self.get_product(product_code)
+        product = self.store_connection.get_product(product_code)
         if not product:
-            print('Product does not exist on the storage')
+            print('Insert a valid product number')
             return
 
         # print(product)
@@ -179,7 +147,7 @@ INSERT INTO `customers`(Total) VALUES
             print('(Invalid operation!) You got buy at least 1 unit of this item')
             return
         
-        self.update_stock(product["OnStock"] - 1, product["Id"])
+        self.store_connection.withdraw(product["Id"], 1)
 
         to_pay_product = float(product["Price"])*product_amount
         print(f'You\'re buying {product_amount} {product["Name"]}, it cost {to_pay_product} R$')
@@ -202,7 +170,7 @@ INSERT INTO `customers`(Total) VALUES
             return
         
         # update db values
-        self.add_customer(self.total_price)
+        self.store_connection.add_customer(self.total_price)
         
         # print  bill
         print(f'''
@@ -212,7 +180,7 @@ Cutomer: {self.current_customer}
 
         for seller, amount in self.product_list:
             print(f'{seller["Name"]} {amount}: {seller["Price"]} R$')
-            self.add_seller(self.current_customer, seller["Id"], amount, float(seller["Price"]))
+            self.store_connection.add_seller(self.current_customer, seller["Id"], amount, float(seller["Price"]))
         
         print(f'''---
 Total: {self.total_price:.2f} R$;
@@ -244,7 +212,7 @@ Change: {abs(self.total_price - self.payment):.2f} R$;
         self.window.mainloop()
     
     def end(self) -> None:
-        self.connection.close()
+        self.store_connection.close()
 
 def main() -> None:
     cash = App()
