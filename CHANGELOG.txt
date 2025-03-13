@@ -20,8 +20,10 @@ link them `created`
 
 ### Added 
 - window icon
+- Modulirezation
 - sun valley theme
 - docstrings to help to remember what function does
+- code colum is used
 
 ### Changed
 - entry font default -> Helvetica, 16
