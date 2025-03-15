@@ -14,7 +14,6 @@ def is_float(value: str) -> bool:
 
 class App:
     def __init__(self):
-        helvetica_meddium = ('Helvetica', 16)
         # connect with the database
         self.store_connection = connection.Store_connection(
             'localhost',
@@ -28,6 +27,7 @@ class App:
         self.window.title('Cash register')
         self.window.iconbitmap('icon.ico')
 
+        helvetica_meddium = ('Helvetica', 16)
         onlyInt = self.window.register(lambda p: p.isdigit() or p == '')
         onlyNumbers = self.window.register(lambda p: is_float(p) or p == '')
         
@@ -35,7 +35,6 @@ class App:
         self.code_frame = tk.Frame(self.input_frame)
         self.code_label = tk.Label(self.code_frame, text='Code', font=helvetica_meddium)
         self.code_label.pack()
-
 
         self.code_entry = tk.Entry(self.code_frame, validate='all', vcmd=(onlyInt, '%P'), width=22, font=helvetica_meddium)
         self.code_entry.pack()
@@ -59,7 +58,7 @@ class App:
         self.bought_frame = tk.Frame(self.window, width=256, height=128)
         self.bought_items = ttk.Treeview(self.bought_frame, columns=('Name', 'Amount', 'Per_unit', 'Total'))
         self.bought_items.column('#0', stretch=True)
-        self.bought_items.heading('#0', text='Id')
+        self.bought_items.heading('#0', text='Code')
 
         self.bought_items.column('Name', stretch=True)
         self.bought_items.heading('Name', text='Name')
@@ -101,8 +100,8 @@ class App:
         self.next_button = tk.Button(self.right_frame, text='Next', font=helvetica_meddium, command=self.switch_to_payment, bg='green', fg='white', width=12, height=3)
         self.next_button.pack()
 
-        # self.delete_button = tk.Button(self.right_frame, text="Delete", font=helvetica_meddium, bg='red', fg='white', width=12, height=3)
-        # self.delete_button.pack()
+        self.delete_button = tk.Button(self.right_frame, text="Delete", font=helvetica_meddium, command=self.remove_selection, bg='red', fg='white', width=12, height=3)
+        self.delete_button.pack()
 
         self.cancel_button = tk.Button(self.right_frame, text='Cancel', font=helvetica_meddium, command=self.reset_seller, bg='red', fg='white', width=12, height=3)
         self.cancel_button.pack()
@@ -117,23 +116,31 @@ class App:
         self.total_price = 0
         self.payment = 0
 
-    def get_product_on_tree(self, id: int) -> bool:
+    def get_product_on_tree(self, code: str) -> bool | str:
         for child in self.bought_items.get_children(''):
             item = self.bought_items.item(child, 'text')
 
-            if int(item) == id:
+            if item == code:
                 return child
         
         return False
-
+    
+    def get_product_on_list(self, code: str) -> bool | int:
+        # Update the list incressing if the product already exist
+        for i, (item, amount) in enumerate(self.product_list):
+            if item["Code"] == code:
+                return i
+        
+        return False
+    
     def update_bought_treeview(self, product: dict[str, any], amount: int) -> None:
-        if child := self.get_product_on_tree(product["Id"]):
+        if child := self.get_product_on_tree(product["Code"]):
             item = self.bought_items.item(child, 'values')
             self.bought_items.item(child, values=(product["Name"], int(item[1]) + amount, product["Price"], float(item[3]) + float(product["Price"])*amount))
         else:
             self.bought_items.insert('',
                 tk.END, 
-                text=product["Id"],
+                text=product["Code"],
                 values=(product["Name"], amount, product["Price"], product["Price"]*amount)
             )
 
@@ -169,12 +176,19 @@ class App:
         print(f'You\'re buying {product_amount} {product["Name"]}, it cost {to_pay_product} R$ still theres {product["OnStock"]} on stock')
 
         self.total_price += to_pay_product
-        self.product_list.append((product, product_amount))
 
+        # Update the list incressing if the product already exist
+        if product_index := self.get_product_on_list(product_code):
+            self.product_list[product_index] = (product, amount + product_amount)
+        else:
+            self.product_list.append((product, product_amount))
+        
+        # reset entries
         self.code_entry.delete(0, tk.END)
         self.amount_entry.delete(0, tk.END)
         self.update_bought_treeview(product, product_amount)
 
+        # update last item labels
         self.total_price_text.configure(text=f'Total {self.total_price} R$')
         self.last_product_text.configure(text=f'\"{product["Name"]}\" {product_amount} {to_pay_product} R$')
 
@@ -191,12 +205,12 @@ class App:
         # print  bill
         print(f'''
 ***Bill***
-Cutomer: {self.current_customer}
+Cutomer: {self.store_connection.current_customer}
 ---''')
 
         for seller, amount in self.product_list:
             print(f'{seller["Name"]} {amount}: {seller["Price"]} R$')
-            self.store_connection.add_seller(self.current_customer, seller["Id"], amount, float(seller["Price"]))
+            self.store_connection.add_seller(self.store_connection.current_customer, seller["Id"], amount, float(seller["Price"]))
             self.store_connection.withdraw(seller["Code"], amount)
 
         print(f'''---
@@ -208,18 +222,30 @@ Change: {abs(self.total_price - self.payment):.2f} R$;
         print('Next costumer!')
 
         # update program values
-        self.current_customer += 1
+        self.store_connection.current_customer += 1
         
         self.reset_seller()
+    
+    def remove_selection(self) -> None:
+        selected_item = self.bought_items.selection()[0]
+        selected_code = self.bought_items.item(selected_item, 'text')
 
-    def reset_seller(self):
-        # reset program values
+        self.product_list = [(item, amount) for item, amount in self.product_list if item["Code"] != selected_code]
+        self.total_price = sum(float(item["Price"])*amount for item, amount in self.product_list)
+        
+        self.bought_items.delete(selected_item)
+        self.total_price_text.configure(text=f'Total {self.total_price} R$')
+
+    def reset_seller(self) -> None:
+        # reset widgets
         self.confirm_button.configure(command=self.send_product)
 
+        # text labels
         self.total_price_text.configure(text='Total 0 R$')
         self.last_product_text.configure(text='...')
         self.change_text.configure(text=f'Change: {abs(self.total_price - self.payment):.2f} R$')
         
+        # entries
         self.amount_entry.delete(0, tk.END)
         self.recive_entry.delete(0, tk.END)
         self.bought_items.delete(*self.bought_items.get_children())

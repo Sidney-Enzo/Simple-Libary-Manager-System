@@ -12,7 +12,7 @@ class Store_connection(pymysql.connect):
         )
 
         # Create a cursor for database controlling
-        self.controler_cursor = self.cursor()
+        self.controler_cursor: pymysql.cursors.Cursor = self.cursor()
 
         # print(self.get_stock())
 
@@ -29,12 +29,12 @@ class Store_connection(pymysql.connect):
         """Get the product with the correponding code"""
 
         self.controler_cursor.execute("SELECT * FROM `products` WHERE `Code` = %s;", (code))
-        return self.controler_cursor.fetchall()[0]
+        return self.controler_cursor.fetchone()
     
     def get_next_costumer(self) -> int:
         """Get the last costumer"""
         self.controler_cursor.execute('SELECT COALESCE(MAX(`Id`), 0) AS `LastCustomer` FROM `customers`;')
-        return self.controler_cursor.fetchall()[0]["LastCustomer"] + 1
+        return self.controler_cursor.fetchone()["LastCustomer"] + 1
 
     def withdraw(self, code: str, amount: int) -> None:
         """Decress the amount of the product availiable on stock"""

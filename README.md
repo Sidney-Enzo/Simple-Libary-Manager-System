@@ -12,14 +12,16 @@ the program is pretty simple, you hit the product code and amount then press con
 it register in a list and insert in the table the product name, amount bought and total,
 it also display on right the last product bought.
 After give all the products hit the "next" button and then send the payment value and it automatically
-show you the change. 
+show you the change. you can also delete a item or cancel a purchase.
 
 ## Project state
 It's good and works with no bugs (at least not find yet) already have a GUI for data
 visualization, still can't erase products from sellers it's a problem, The schematic is organized
 (might need some optmation) and has the necessary data for a libary (data can be add, removed or changed later).
-About the code, it's organized with a app class, so i can handler the Libary and Gui variables without
-the necessity of use the global scope.
+About the code, it's organized with a app class and a connection class each in a individual file,
+so i can handler the Libary and Gui variables without the necessity of use the global scope and handler 
+all the database in only one place. I also added a test unit to test function with different parametters and
+ensure that it's working properly.
 
 ## How to test by yourself?
 If you want to see if the program really works fallow the nexts steps:

@@ -24,6 +24,9 @@ link them `created`
 - sun valley theme
 - docstrings to help to remember what function does
 - code colum is used
+- Test unit
+- Cancel purchace
+- Delete item
 
 ### Changed
 - entry font default -> Helvetica, 16
